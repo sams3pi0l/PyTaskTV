@@ -10,7 +10,7 @@ try:
     import config
 except ImportError:
     print("\n⚠ File config.py non trovato!")
-    print("1. Copia config_example.py in config.py")
+    print("1. Rinomina config_example.py in config.py")
     print("2. Crea un'app su https://trakt.tv/oauth/applications/new")
     print("3. Inserisci CLIENT_ID e CLIENT_SECRET nel file config.py\n")
     sys.exit(1)
