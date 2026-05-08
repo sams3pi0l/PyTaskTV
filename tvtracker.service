@@ -5,8 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=admin
-Group=admin
+User=pi
 WorkingDirectory=/opt/tvtracker
 ExecStart=/opt/tvtracker/.venv/bin/python /opt/tvtracker/monitor.py
 Restart=always
