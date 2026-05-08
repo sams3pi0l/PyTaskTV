@@ -1,0 +1,23 @@
+# Configurazione e credenziali
+config.py
+trakt_token.json
+status_cache.json
+PyTaskTV.xml
+avvio.bat
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
