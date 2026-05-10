@@ -65,7 +65,7 @@ def main():
         print("="*70)
         print("1. Visualizza i miei show preferiti 📺")
         print("2. Visualizza la mia watchlist 📋")
-        print("3. Visualizza gli show che sto guardando 🎬")
+        print("3. Visualizza gli show che ho già visto 🎬")
         print("4. Cerca uno show 🔍")
         print("5. Show più popolari 🔥")
         print("6. Show di tendenza 📈")

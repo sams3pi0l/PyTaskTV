@@ -38,6 +38,61 @@ Script Python per interagire con l'API di Trakt.tv e visualizzare informazioni s
    # Modifica config.py e inserisci le tue credenziali
    ```
 
+## Avvio rapido
+
+### Windows
+
+1. **Apri PowerShell nella cartella del progetto**
+2. **Crea e attiva virtualenv**
+   ```powershell
+   py -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+   pip install -r requirements.txt
+   copy config_example.py config.py
+   ```
+3. **Configura `config.py`** con credenziali Trakt e Telegram
+4. **Prima autenticazione Trakt**
+   ```powershell
+   python monitor.py
+   ```
+5. **Esecuzione**
+   - menu principale: `python main.py`
+   - monitor notifiche: `python monitor.py`
+
+### Raspberry / Linux
+
+1. **Prepara ambiente**
+   ```bash
+   python3 -m venv .venv
+   .venv/bin/pip install -r requirements.txt
+   cp config_example.py config.py
+   ```
+2. **Configura `config.py`**
+3. **Prima autenticazione Trakt**
+   ```bash
+   .venv/bin/python monitor.py
+   ```
+4. **Esecuzione manuale**
+   - menu principale: `.venv/bin/python main.py`
+   - monitor notifiche: `.venv/bin/python monitor.py`
+
+## Telegram Bot (setup rapido)
+
+1. Su Telegram cerca `@BotFather`
+2. Esegui `/newbot` e completa nome + username del bot
+3. Copia il token fornito da BotFather (`TELEGRAM_BOT_TOKEN`)
+4. Scrivi almeno un messaggio al tuo bot (es. `/start`)
+5. Recupera il tuo `chat_id`:
+   - metodo rapido: apri `https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/getUpdates`
+   - cerca il campo `chat.id` nel JSON
+6. Inserisci in `config.py`:
+   - `TELEGRAM_BOT_TOKEN`
+   - `TELEGRAM_CHAT_ID`
+7. Test invio:
+   ```bash
+   python monitor.py --test-telegram
+   ```
+
 ## Deploy su Raspberry (systemd)
 
 Percorso consigliato:
@@ -66,11 +121,29 @@ Percorso consigliato:
    Segui la procedura OAuth a terminale. Verrà creato `trakt_token.json`.
 
 4. **Installa servizio systemd**
+   Nel repository trovi gia il file `tvtracker.service` pronto come base.
+   Va copiato in `/etc/systemd/system/` e adattato (utente e path) al tuo sistema.
+
    ```bash
    sudo cp tvtracker.service /etc/systemd/system/tvtracker.service
    sudo systemctl daemon-reload
    sudo systemctl enable tvtracker.service
    sudo systemctl start tvtracker.service
+   ```
+
+   Se devi adattare utente o path, modifica prima il servizio:
+   ```bash
+   sudo nano /etc/systemd/system/tvtracker.service
+   ```
+   Campi tipici da verificare:
+   - `User=pi` (oppure l'utente reale che possiede `/opt/tvtracker`)
+   - `WorkingDirectory=/opt/tvtracker`
+   - `ExecStart=/opt/tvtracker/.venv/bin/python /opt/tvtracker/monitor.py`
+
+   Dopo ogni modifica:
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl restart tvtracker.service
    ```
 
 5. **Verifica stato e log**
@@ -190,7 +263,7 @@ Il token verrà salvato automaticamente in `trakt_token.json` per gli usi succes
 
 1. **Visualizza i miei show preferiti** - Mostra i tuoi top 50 show preferiti
 2. **Visualizza la mia watchlist** - Show che vuoi guardare in futuro
-3. **Visualizza gli show che sto guardando** - Cronologia completa
+3. **Visualizza gli show che ho già visto** - Cronologia completa
 4. **Cerca uno show** - Ricerca per nome
 5. **Show più popolari** - I più votati su Trakt
 6. **Show di tendenza** - I più visti nelle ultime 24 ore
@@ -200,16 +273,17 @@ Il token verrà salvato automaticamente in `trakt_token.json` per gli usi succes
 
 ```
 PyTrakt/
-├── main.py                # Script principale
-├── import_watched.py      # Import massivo show visti
+├── main.py               # Script principale
+├── import_watched.py     # Import massivo show visti
 ├── trakt_auth.py         # Gestione autenticazione OAuth
 ├── trakt_shows.py        # Interazione con API show
 ├── config_example.py     # Template configurazione
 ├── config.py             # Configurazione (da creare)
 ├── trakt_token.json      # Token salvato (generato automaticamente)
 ├── requirements.txt      # Dipendenze Python
-├── .gitignore           # File da ignorare in git
-└── README.md            # Questo file
+├── .gitignore            # File da ignorare in git
+├── tvtracker.service     # Servizio systemd
+└── README.md             # Questo file
 ```
 
 ## API Endpoints Utilizzati
