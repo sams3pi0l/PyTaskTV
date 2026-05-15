@@ -3,8 +3,9 @@ config.py
 trakt_token.json
 status_cache.json
 PyTaskTV.xml
-avvio.bat
-_appunti.txt
+_avvio.bat
+_monitor.bat
+tvtracker.service
 logs/
 
 # Python

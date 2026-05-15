@@ -160,10 +160,21 @@ def should_notify(prev_data, new_status, new_next_air, new_next_episode_code):
 def monitor_once(shows_client, bot_token, chat_id):
     state = load_state()
     state_shows = state.setdefault("shows", {})
+    settings = shows_client.get_user_settings() or {}
+    username = ((settings.get("user") or {}).get("username")) or "unknown"
+    favorites = shows_client.get_favorites(type="shows", extended="full") or []
+    watchlist = shows_client.get_watchlist(type="shows", extended="full") or []
     source_items = shows_client.get_combined_user_shows(extended="full")
+    print(
+        f"[{utc_now_iso()}] Utente Trakt: {username} | "
+        f"favorites={len(favorites)} watchlist={len(watchlist)} combined={len(source_items)}"
+    )
 
     if not source_items:
-        print("Nessuno show trovato in favorites/watchlist.")
+        print(
+            "Nessuno show trovato in favorites/watchlist. "
+            "Controlla account Trakt autenticato e token in uso su questa macchina."
+        )
         return 0
 
     sent = 0
