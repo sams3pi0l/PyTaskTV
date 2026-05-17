@@ -283,6 +283,7 @@ PyTrakt/
 ├── requirements.txt      # Dipendenze Python
 ├── .gitignore            # File da ignorare in git
 ├── tvtracker.service     # Servizio systemd
+├── status_cache.json     # Cache con fingerprint per show (generato automaticamente)
 └── README.md             # Questo file
 ```
 
