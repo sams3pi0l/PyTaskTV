@@ -201,6 +201,7 @@ def monitor_once(shows_client, bot_token, chat_id):
                     sent += 1
 
             state_shows[key] = {
+                "title": show.get("title"),
                 "status": new_status,
                 "next_air": new_next_air,
                 "next_episode_code": new_next_episode_code,

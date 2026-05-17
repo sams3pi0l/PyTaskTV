@@ -135,10 +135,10 @@ Percorso consigliato:
    ```bash
    sudo nano /etc/systemd/system/tvtracker.service
    ```
-   Campi tipici da verificare:
-   - `User=pi` (oppure l'utente reale che possiede `/opt/tvtracker`)
-   - `WorkingDirectory=/opt/tvtracker`
-   - `ExecStart=/opt/tvtracker/.venv/bin/python /opt/tvtracker/monitor.py`
+   Campi da verificare:
+   - `User=pi` (nome utente)
+   - `WorkingDirectory=/opt/tvtracker` (percorso)
+   - `ExecStart=/opt/tvtracker/.venv/bin/python /opt/tvtracker/monitor.py` (comando di avvio)
 
    Dopo ogni modifica:
    ```bash
@@ -262,7 +262,7 @@ Il token verrà salvato automaticamente in `trakt_token.json` per gli usi succes
 ## Menu Opzioni
 
 1. **Visualizza i miei show preferiti** - Mostra i tuoi top 50 show preferiti
-2. **Visualizza la mia watchlist** - Show che vuoi guardare in futuro
+2. **Visualizza la mia watchlist** - Show che stai seguendo
 3. **Visualizza gli show che ho già visto** - Cronologia completa
 4. **Cerca uno show** - Ricerca per nome
 5. **Show più popolari** - I più votati su Trakt
