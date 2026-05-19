@@ -8,9 +8,10 @@ import json
 import os
 import time
 import argparse
-import traceback
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from html import escape as html_escape
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -21,11 +22,14 @@ except ImportError:
     raise SystemExit(1)
 
 from trakt_auth import TraktAuth
-from trakt_shows import TraktShows
+from trakt_shows import TraktAuthError, TraktRateLimitError, TraktShows
 
 
 TARGET_STATUSES = {"returning series", "in production"}
 STATE_FILE = Path("status_cache.json")
+DEFAULT_ALERT_STATE_FILE = Path("last_auth_alert.txt")
+DEFAULT_AUTH_ALERT_COOLDOWN_HOURS = 12
+ITALY_TZ = ZoneInfo("Europe/Rome")
 
 
 def utc_now_iso():
@@ -58,9 +62,15 @@ def get_config_value(name, default=None):
     return os.getenv(name, default)
 
 
-def send_telegram_message(bot_token, chat_id, text):
+def send_telegram_message(bot_token, chat_id, text, parse_mode=None):
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    payload = {"chat_id": chat_id, "text": text, "disable_web_page_preview": True}
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "disable_web_page_preview": True,
+    }
+    if parse_mode:
+        payload["parse_mode"] = parse_mode
     try:
         response = requests.post(url, json=payload, timeout=20)
         response.raise_for_status()
@@ -108,30 +118,135 @@ def get_next_episode_info(shows_client, show):
     }
 
 
+def should_send_auth_alert(alert_state_file, cooldown_hours):
+    now = datetime.now(timezone.utc)
+
+    if not alert_state_file.exists():
+        return True
+
+    try:
+        last_sent = datetime.fromisoformat(alert_state_file.read_text().strip())
+    except Exception:
+        return True
+
+    return now - last_sent > timedelta(hours=cooldown_hours)
+
+
+def mark_auth_alert_sent(alert_state_file):
+    alert_state_file.parent.mkdir(parents=True, exist_ok=True)
+    alert_state_file.write_text(datetime.now(timezone.utc).isoformat(), encoding="utf-8")
+
+
+def notify_telegram(bot_token, chat_id, message):
+    return send_telegram_message(
+        bot_token,
+        chat_id,
+        message,
+        parse_mode="HTML",
+    )
+
+
+def run_monitor(shows_client, bot_token, chat_id):
+    sent = monitor_once(shows_client, bot_token, chat_id)
+    print(f"[{utc_now_iso()}] Notifiche inviate: {sent}")
+
+
+def run_monitor_cycle(
+    shows_client,
+    bot_token,
+    chat_id,
+    alert_state_file,
+    auth_alert_cooldown_hours,
+):
+    try:
+        run_monitor(shows_client, bot_token, chat_id)
+    except TraktAuthError as exc:
+        if should_send_auth_alert(alert_state_file, auth_alert_cooldown_hours):
+            notify_telegram(
+                bot_token,
+                chat_id,
+                "🚨 <b>TVTask auth error</b>\n\n"
+                "Trakt ha rifiutato la richiesta.\n\n"
+                f"<code>{html_escape(str(exc))}</code>\n\n"
+                "Controlla API key / token.",
+            )
+            mark_auth_alert_sent(alert_state_file)
+        raise
+    except TraktRateLimitError as exc:
+        notify_telegram(
+            bot_token,
+            chat_id,
+            "⚠️ <b>TVTask rate limit</b>\n\n"
+            "Trakt ha applicato un limite di richieste.\n\n"
+            f"<code>{html_escape(str(exc))}</code>",
+        )
+        raise
+    except Exception as exc:
+        notify_telegram(
+            bot_token,
+            chat_id,
+            "💥 <b>TVTask error</b>\n\n"
+            f"{html_escape(str(exc) or type(exc).__name__)}",
+        )
+        raise
+
+
 def build_message(show, prev_data, new_status, new_next_air, new_next_episode_code):
     title = show.get("title", "N/A")
     slug = (show.get("ids") or {}).get("slug")
     trakt_url = f"https://trakt.tv/shows/{slug}" if slug else ""
 
-    lines = [f"Trakt update: {title}"]
-
     prev_status = prev_data.get("status") if prev_data else None
     prev_next_air = prev_data.get("next_air") if prev_data else None
     prev_next_episode_code = prev_data.get("next_episode_code") if prev_data else None
 
+    old_air_fmt = format_trakt_datetime(prev_next_air)
+    new_air_fmt = format_trakt_datetime(new_next_air)
+    old_ep = prev_next_episode_code or "N/D"
+    new_ep = new_next_episode_code or "N/D"
+
+    lines = [
+        f"📺 <b>{html_escape(title)}</b>",
+        "━━━━━━━━━━━━━━",
+        "",
+    ]
+
     if prev_status != new_status:
-        lines.append(f"- status: {prev_status or 'N/A'} -> {new_status or 'N/A'}")
-    if prev_next_air != new_next_air:
-        lines.append(f"- next_air: {prev_next_air or 'TBA'} -> {new_next_air or 'TBA'}")
-    if prev_next_episode_code != new_next_episode_code:
-        lines.append(
-            f"- next_episode: {prev_next_episode_code or 'TBA'} -> {new_next_episode_code or 'TBA'}"
+        lines.extend(
+            [
+                "🔄 <b>Status</b>",
+                f"<code>{html_escape((prev_status or 'N/D').title())}</code> → "
+                f"<code>{html_escape((new_status or 'N/D').title())}</code>",
+                "",
+            ]
         )
 
+    lines.extend(
+        [
+            "🗓 <b>Next air</b>",
+            f"<code>{html_escape(old_air_fmt)}</code>",
+            f"→ <code>{html_escape(new_air_fmt)}</code>",
+            "",
+            "🎬 <b>Next episode</b>",
+            f"<code>{html_escape(old_ep)}</code> → <code>{html_escape(new_ep)}</code>",
+        ]
+    )
+
     if trakt_url:
-        lines.append(trakt_url)
+        lines.extend(["", f"🔗 <a href=\"{html_escape(trakt_url)}\">Apri su Trakt</a>"])
 
     return "\n".join(lines)
+
+
+def format_trakt_datetime(value):
+    if not value:
+        return "N/D"
+
+    try:
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return dt.astimezone(ITALY_TZ).strftime("%d/%m/%Y %H:%M")
+    except Exception:
+        return str(value)
 
 
 def should_notify(prev_data, new_status, new_next_air, new_next_episode_code):
@@ -197,7 +312,7 @@ def monitor_once(shows_client, bot_token, chat_id):
                 msg = build_message(
                     show, prev_data, new_status, new_next_air, new_next_episode_code
                 )
-                if send_telegram_message(bot_token, chat_id, msg):
+                if notify_telegram(bot_token, chat_id, msg):
                     sent += 1
 
             state_shows[key] = {
@@ -228,6 +343,16 @@ def main():
     bot_token = get_config_value("TELEGRAM_BOT_TOKEN")
     chat_id = get_config_value("TELEGRAM_CHAT_ID")
     polling_interval_minutes = int(get_config_value("POLLING_INTERVAL_MINUTES", 0) or 0)
+    alert_state_file = Path(
+        get_config_value("AUTH_ALERT_STATE_FILE", str(DEFAULT_ALERT_STATE_FILE))
+    )
+    auth_alert_cooldown_hours = int(
+        get_config_value(
+            "AUTH_ALERT_COOLDOWN_HOURS",
+            DEFAULT_AUTH_ALERT_COOLDOWN_HOURS,
+        )
+        or DEFAULT_AUTH_ALERT_COOLDOWN_HOURS
+    )
 
     if not bot_token or not chat_id:
         print("Config mancante: TELEGRAM_BOT_TOKEN e/o TELEGRAM_CHAT_ID.")
@@ -253,18 +378,25 @@ def main():
     shows_client = TraktShows(auth)
 
     if polling_interval_minutes <= 0:
-        sent = monitor_once(shows_client, bot_token, chat_id)
-        print(f"Monitor completato. Notifiche inviate: {sent}")
+        run_monitor_cycle(
+            shows_client,
+            bot_token,
+            chat_id,
+            alert_state_file,
+            auth_alert_cooldown_hours,
+        )
+        print("Monitor completato.")
         return
 
     print(f"Monitor avviato. Intervallo: {polling_interval_minutes} minuti.")
     while True:
-        try:
-            sent = monitor_once(shows_client, bot_token, chat_id)
-            print(f"[{utc_now_iso()}] Notifiche inviate: {sent}")
-        except Exception as exc:
-            print(f"[{utc_now_iso()}] Errore nel ciclo monitor: {exc}")
-            print(traceback.format_exc())
+        run_monitor_cycle(
+            shows_client,
+            bot_token,
+            chat_id,
+            alert_state_file,
+            auth_alert_cooldown_hours,
+        )
         time.sleep(polling_interval_minutes * 60)
 
 

@@ -5,12 +5,16 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=admin
+User=ubuntu
 WorkingDirectory=/opt/tvtracker
 ExecStart=/opt/tvtracker/.venv/bin/python /opt/tvtracker/monitor.py
 Restart=always
 RestartSec=20
 Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
 
 [Install]
 WantedBy=multi-user.target

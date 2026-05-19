@@ -6,6 +6,31 @@ import time
 from datetime import datetime
 
 
+class TraktApiError(Exception):
+    """Errore generico API Trakt."""
+
+
+class TraktAuthError(TraktApiError):
+    """Errore di autenticazione/autorizzazione Trakt."""
+
+
+class TraktRateLimitError(TraktApiError):
+    """Errore di rate limit Trakt."""
+
+
+def check_trakt_response(response):
+    if response.status_code == 401:
+        raise TraktAuthError("Trakt authentication failed: 401 Unauthorized")
+
+    if response.status_code == 403:
+        raise TraktAuthError("Trakt authentication failed or forbidden: 403 Forbidden")
+
+    if response.status_code == 429:
+        raise TraktRateLimitError("Trakt rate limit: 429 Too Many Requests")
+
+    response.raise_for_status()
+
+
 class TraktShows:
     """Gestisce le operazioni relative agli show su Trakt.tv"""
     
@@ -42,13 +67,12 @@ class TraktShows:
                 if response.status_code == 204:
                     return None
 
-                response.raise_for_status()
+                check_trakt_response(response)
                 return response.json()
             except requests.exceptions.RequestException as e:
-                print(f"Errore nella richiesta API: {e}")
-                return None
+                raise TraktApiError(f"Errore nella richiesta API: {e}") from e
 
-        return None
+        raise TraktRateLimitError("Trakt rate limit: 429 Too Many Requests")
 
     def _make_request(self, endpoint, params=None):
         """Effettua una richiesta API GET"""
@@ -153,20 +177,29 @@ class TraktShows:
         headers = self.auth.get_headers()
         params = {'extended': extended}
 
-        try:
-            response = requests.get(
-                url,
-                headers=headers,
-                params=params,
-                timeout=self.REQUEST_TIMEOUT
-            )
-            if response.status_code in (204, 404):
-                return None
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            print(f"Errore nel recupero next_episode ({show_id}): {e}")
-            return None
+        for attempt in range(3):
+            try:
+                response = requests.get(
+                    url,
+                    headers=headers,
+                    params=params,
+                    timeout=self.REQUEST_TIMEOUT
+                )
+                if response.status_code == 429 and attempt < 2:
+                    retry_after = response.headers.get('Retry-After')
+                    wait_seconds = int(retry_after) if retry_after and retry_after.isdigit() else 2
+                    time.sleep(max(wait_seconds, 1))
+                    continue
+                if response.status_code in (204, 404):
+                    return None
+                check_trakt_response(response)
+                return response.json()
+            except requests.exceptions.RequestException as e:
+                raise TraktApiError(
+                    f"Errore nel recupero next_episode ({show_id}): {e}"
+                ) from e
+
+        raise TraktRateLimitError("Trakt rate limit: 429 Too Many Requests")
     
     def get_watched_shows(self, extended='full'):
         """Ottiene tutti gli show guardati dall'utente"""
