@@ -11,7 +11,7 @@ import argparse
 from datetime import datetime, timedelta, timezone
 from html import escape as html_escape
 from pathlib import Path
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -29,25 +29,11 @@ TARGET_STATUSES = {"returning series", "in production"}
 STATE_FILE = Path("status_cache.json")
 DEFAULT_ALERT_STATE_FILE = Path("last_auth_alert.txt")
 DEFAULT_AUTH_ALERT_COOLDOWN_HOURS = 12
-DEFAULT_TIMEZONE = "UTC"
+ITALY_TZ = ZoneInfo("Europe/Rome")
 
 
-def get_display_timezone():
-    if hasattr(config, "TIMEZONE"):
-        tz_name = getattr(config, "TIMEZONE")
-    else:
-        tz_name = os.getenv("TIMEZONE", DEFAULT_TIMEZONE)
-    try:
-        return ZoneInfo(tz_name)
-    except ZoneInfoNotFoundError:
-        return ZoneInfo(DEFAULT_TIMEZONE)
-
-
-DISPLAY_TZ = get_display_timezone()
-
-
-def local_now_iso():
-    return datetime.now(DISPLAY_TZ).strftime("%Y-%m-%d %H:%M")
+def utc_now_iso():
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
 
 
 def load_state():
@@ -162,7 +148,7 @@ def notify_telegram(bot_token, chat_id, message):
 
 def run_monitor(shows_client, bot_token, chat_id):
     sent = monitor_once(shows_client, bot_token, chat_id)
-    print(f"[{local_now_iso()}] Notifiche inviate: {sent}")
+    print(f"[{utc_now_iso()}] Notifiche inviate: {sent}")
 
 
 def run_monitor_cycle(
@@ -258,7 +244,7 @@ def format_trakt_datetime(value):
 
     try:
         dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-        return dt.astimezone(DISPLAY_TZ).strftime("%d/%m/%Y %H:%M")
+        return dt.astimezone(ITALY_TZ).strftime("%d/%m/%Y %H:%M")
     except Exception:
         return str(value)
 
@@ -275,7 +261,7 @@ def should_notify(prev_data, new_status, new_next_air, new_next_episode_code):
         new_status in TARGET_STATUSES and new_status != prev_status
     )
     # Notifica se next_air diventa disponibile o cambia (anche da data a data)
-    next_air_updated = prev_next_air != new_next_air and new_next_air != "N/D"
+    next_air_updated = prev_next_air != new_next_air and new_next_air is not None
     
     fingerprint_changed = (
         (prev_status != new_status)
@@ -295,7 +281,7 @@ def monitor_once(shows_client, bot_token, chat_id):
     watchlist = shows_client.get_watchlist(type="shows", extended="full") or []
     source_items = shows_client.get_combined_user_shows(extended="full")
     print(
-        f"[{local_now_iso()}] Utente Trakt: {username} | "
+        f"[{utc_now_iso()}] Utente Trakt: {username} | "
         f"favorites={len(favorites)} watchlist={len(watchlist)} combined={len(source_items)}"
     )
 
@@ -307,8 +293,7 @@ def monitor_once(shows_client, bot_token, chat_id):
         return 0
 
     sent = 0
-    now_iso = local_now_iso()
-    now_local_iso = local_now_iso()
+    now_iso = utc_now_iso()
 
     for item in source_items:
         try:
@@ -319,7 +304,7 @@ def monitor_once(shows_client, bot_token, chat_id):
 
             new_status = normalize_status(show.get("status"))
             next_ep_info = get_next_episode_info(shows_client, show)
-            new_next_air = format_trakt_datetime(next_ep_info["next_air"])
+            new_next_air = next_ep_info["next_air"]
             new_next_episode_code = next_ep_info["next_episode_code"]
             prev_data = state_shows.get(key)
 
@@ -335,7 +320,7 @@ def monitor_once(shows_client, bot_token, chat_id):
                 "status": new_status,
                 "next_air": new_next_air,
                 "next_episode_code": new_next_episode_code,
-                "updated_at": now_local_iso,
+                "updated_at": now_iso,
             }
         except Exception as exc:
             show_title = (item.get("show", item) or {}).get("title", "N/A")
@@ -374,7 +359,7 @@ def main():
         raise SystemExit(1)
 
     if args.test_telegram:
-        msg = f"Test Telegram OK - {local_now_iso()}"
+        msg = f"Test Telegram OK - {utc_now_iso()}"
         ok = send_telegram_message(bot_token, chat_id, msg)
         print("Test Telegram inviato." if ok else "Invio test Telegram fallito.")
         raise SystemExit(0 if ok else 1)

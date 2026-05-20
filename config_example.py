@@ -18,3 +18,7 @@ TELEGRAM_CHAT_ID = '123456789'
 # 0 = esecuzione singola (consigliato con Task Scheduler su Windows)
 # >0 = loop continuo ogni N minuti (consigliato con systemd su Raspberry)
 POLLING_INTERVAL_MINUTES = 60
+
+# Timezone usata per mostrare date/orari nelle notifiche Telegram
+# https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+TIMEZONE = "Europe/Rome"

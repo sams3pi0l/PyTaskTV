@@ -59,6 +59,9 @@ Script Python per interagire con l'API di Trakt.tv e visualizzare informazioni s
    - menu principale: `python main.py`
    - monitor notifiche: `python monitor.py`
 
+6. **Task Scheduler**
+   - utilizza `Task Scheduler` se vuoi avviare l'app automaticamente
+
 ### Raspberry / Linux
 
 1. **Prepara ambiente**
@@ -93,7 +96,7 @@ Script Python per interagire con l'API di Trakt.tv e visualizzare informazioni s
    python monitor.py --test-telegram
    ```
 
-## Deploy su Raspberry (systemd)
+## Deploy su Raspberry / Linux (systemd)
 
 Percorso consigliato:
 - progetto: `/opt/tvtracker`
@@ -172,7 +175,7 @@ usa:
 python monitor.py
 ```
 
-Per verificare solo Telegram (senza monitor Trakt):
+Per verificare solo il bot Telegram (senza monitor Trakt):
 
 ```bash
 python monitor.py --test-telegram
@@ -241,6 +244,10 @@ Configura in `config.py` (o come variabili ambiente):
 TELEGRAM_BOT_TOKEN = "123456:ABCDEF..."
 TELEGRAM_CHAT_ID = "123456789"
 POLLING_INTERVAL_MINUTES = 0  # 0 = esecuzione singola, >0 loop continuo
+
+# Timezone usata per mostrare date/orari nelle notifiche Telegram
+# https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+TIMEZONE = "Europe/Rome"
 ```
 
 Lo script crea/aggiorna `status_cache.json` con fingerprint per show:
@@ -327,4 +334,3 @@ PyTrakt/
 ## Licenza
 
 Questo progetto è fornito "as is" per scopi educativi e personali.
-"# PyTaskTV_Migration" 

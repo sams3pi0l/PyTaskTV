@@ -2,21 +2,19 @@
 config.py
 trakt_token.json
 status_cache.json
-PyTaskTV.xml
-_avvio.bat
-_monitor.bat
+PyTaskTV.bat
 tvtracker.service
+_roadmap.txt
 logs/
 
 # Python
 __pycache__/
+__bak__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-venv/
-env/
-ENV/
+.venv/
 
 # IDE
 .vscode/
