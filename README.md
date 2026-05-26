@@ -1,4 +1,4 @@
-# PyTraskTV - Gestione Show Trakt.tv
+# PyTaskTV - Gestione Show Trakt.tv
 
 Script Python per interagire con l'API di Trakt.tv e visualizzare informazioni sui tuoi show preferiti.
 
