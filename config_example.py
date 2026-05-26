@@ -1,5 +1,5 @@
 # Trakt API Configuration
-# Rinomina questo file in config.py e inserisci le tue credenziali
+# Modifica config.py e inserisci le tue credenziali
 
 # Crea un'app su https://trakt.tv/oauth/applications/new
 CLIENT_ID = 'your_trakt_client_id'
