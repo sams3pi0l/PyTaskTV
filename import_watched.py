@@ -371,7 +371,9 @@ def main():
             print("Autenticazione fallita. Uscita.")
             sys.exit(1)
     else:
-        auth.ensure_valid_token()
+        if not auth.ensure_valid_token():
+            print('Autenticazione Trakt fallita. Uscita.')
+            sys.exit(1)
 
     shows_client = TraktShows(auth)
 

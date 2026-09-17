@@ -42,7 +42,8 @@ class TraktShows:
     
     def _request(self, method, endpoint, params=None, json_data=None):
         """Effettua una richiesta API"""
-        self.auth.ensure_valid_token()
+        if not self.auth.ensure_valid_token():
+            raise TraktAuthError('Autenticazione Trakt non riuscita. Esegui python trakt_auth.py.')
         
         url = f"{self.API_URL}{endpoint}"
         headers = self.auth.get_headers()
@@ -172,7 +173,8 @@ class TraktShows:
             show_id: ID Trakt dello show o slug
             extended: livello di dettaglio
         """
-        self.auth.ensure_valid_token()
+        if not self.auth.ensure_valid_token():
+            raise TraktAuthError('Autenticazione Trakt non riuscita. Esegui python trakt_auth.py.')
         url = f"{self.API_URL}/shows/{show_id}/next_episode"
         headers = self.auth.get_headers()
         params = {'extended': extended}

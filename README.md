@@ -23,7 +23,7 @@ Script Python per interagire con l'API di Trakt.tv e visualizzare informazioni s
    ```
 
 3. **Crea un'app su Trakt.tv**
-   - Vai su https://trakt.tv/oauth/applications/new
+   - Vai su https://app.trakt.tv/settings/apps
    - Compila i campi:
      - Name: scegli un nome per la tua app
      - Redirect uri: `urn:ietf:wg:oauth:2.0:oob`
@@ -259,10 +259,10 @@ Lo script crea/aggiorna `status_cache.json` con fingerprint per show:
 Nota: al primo run popola la cache e non invia notifiche retroattive.
 
 Al primo avvio ti verrà chiesto di autenticarti:
-1. Visita l'URL mostrato nel browser
-2. Autorizza l'applicazione
-3. Copia il codice ricevuto
-4. Incollalo nel terminale
+1. Visita l'URL mostrato nel terminale
+2. Accedi a Trakt e inserisci **sul sito** il codice visualizzato dal programma
+3. Autorizza l'applicazione
+4. Lascia aperto il terminale: la conferma viene ricevuta automaticamente
 
 Il token verrà salvato automaticamente in `trakt_token.json` per gli usi successivi.
 
@@ -315,7 +315,16 @@ PyTrakt/
 
 **Errore 401 Unauthorized**
 - Verifica che CLIENT_ID e CLIENT_SECRET siano corretti
-- Ri-autentica l'applicazione eliminando `trakt_token.json`
+- Ri-autentica con `python trakt_auth.py` (non serve eliminare il token)
+- I vecchi refresh token precedenti alla migrazione Trakt possono restituire `invalid_grant`: serve una nuova autorizzazione
+- OAuth usa `https://auth.trakt.tv`; le altre API usano `https://api.trakt.tv`
+- `trakt_token.json` viene letto e scritto nella cartella del progetto, anche avviando da un'altra cartella
+- Esegui una sola istanza alla volta: i refresh token sono monouso; non condividere una copia della sessione tra PC e Raspberry
+
+**Il browser non mostra il codice dopo il login**
+- Il nuovo flusso device mostra il codice nel terminale e lo richiede sul sito
+- Avvia `python trakt_auth.py` per collegare nuovamente l'account senza avviare il monitor Telegram
+- Il file esistente viene sostituito solo dopo aver ricevuto i nuovi token
 
 **Errore 429 Rate Limit**
 - Hai superato il limite di richieste (1000 ogni 5 minuti)
@@ -327,8 +336,8 @@ PyTrakt/
 
 ## Risorse
 
-- [Trakt API Documentation](https://trakt.docs.apiary.io/)
-- [Creare un'app Trakt](https://trakt.tv/oauth/applications/new)
+- [Trakt API Documentation](https://docs.trakt.tv/)
+- [Creare un'app Trakt](https://app.trakt.tv/settings/apps)
 - [Trakt Website](https://trakt.tv)
 
 ## Licenza

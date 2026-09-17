@@ -389,7 +389,9 @@ def main():
         print("Autenticazione Trakt fallita.")
         raise SystemExit(1)
 
-    auth.ensure_valid_token()
+    if not auth.ensure_valid_token():
+        print('Autenticazione Trakt fallita.')
+        raise SystemExit(1)
     shows_client = TraktShows(auth)
 
     if polling_interval_minutes <= 0:

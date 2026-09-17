@@ -40,7 +40,9 @@ def main():
             sys.exit(1)
     else:
         # Assicurati che il token sia valido
-        auth.ensure_valid_token()
+        if not auth.ensure_valid_token():
+            print('Autenticazione Trakt fallita. Uscita.')
+            sys.exit(1)
     
     # Inizializza il gestore degli show
     shows = TraktShows(auth)
