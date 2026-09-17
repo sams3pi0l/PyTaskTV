@@ -1,0 +1,21 @@
+[Unit]
+Description=PyTaskTV Trakt Monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/tvtracker
+ExecStart=/opt/tvtracker/.venv/bin/python /opt/tvtracker/monitor.py
+Restart=always
+RestartSec=20
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/tvtracker
+
+[Install]
+WantedBy=multi-user.target

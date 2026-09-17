@@ -3,8 +3,7 @@ config.py
 trakt_token.json
 status_cache.json
 PyTaskTV.bat
-tvtracker.service
-_roadmap.txt
+PyTaskTV.code-workspace
 logs/
 
 # Python
