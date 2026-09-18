@@ -16,7 +16,7 @@ TELEGRAM_BOT_TOKEN = '123456789:replace_with_real_bot_token'
 TELEGRAM_CHAT_ID = '123456789'
 
 # 0 = esecuzione singola (consigliato con Task Scheduler su Windows)
-# >0 = loop continuo ogni N minuti (consigliato con systemd su Raspberry)
+# >0 = loop continuo ogni N minuti (consigliato con systemd su Linux)
 POLLING_INTERVAL_MINUTES = 60
 
 # Timezone usata per mostrare date/orari nelle notifiche Telegram
